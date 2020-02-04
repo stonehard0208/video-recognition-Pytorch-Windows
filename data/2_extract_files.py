@@ -78,7 +78,7 @@ def get_nb_frames_for_video(video_parts):
 
 def get_video_parts(video_path):
     """Given a full path to a video, return its parts."""
-    parts = video_path.split("\\") #将./train\ApplyEyeMakeup\v_ApplyEyeMakeup_g08_c01.avi 按照/\分开
+    parts = video_path.split("\\") #将./train\ApplyEyeMakeup\v_ApplyEyeMakeup_g08_c01.avi 按照\分开
     #print(parts[1])
     filename = parts[2] #v_ApplyEyeMakeup_g08_c01.avi
     filename_no_ext = filename.split('.')[0] #v_ApplyEyeMakeup_g08_c01
