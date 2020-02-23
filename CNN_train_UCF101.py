@@ -5,7 +5,9 @@ import torch.nn as nn
 from torch.nn import functional as F
 import torch.optim as optim
 import copy
-result = []
+import os
+from torch.autograd import Variable
+
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
@@ -28,31 +30,23 @@ data_transforms = {
             ])
 
         }
-
-image_datasets = {
-        'train':
-            datasets.ImageFolder('./data/train', data_transforms['train']),
-        'test':
-            datasets.ImageFolder('./data/test', data_transforms['test'])
-        }
-
-dataloaders = {
-        'train':
-            torch.utils.data.DataLoader(
-                image_datasets['train'],
+train_set = datasets.ImageFolder('./data/train', data_transforms['train'])
+train_loader = torch.utils.data.DataLoader(
+                train_set,
                 batch_size=32,
                 shuffle=True,
-                num_workers=0),
-        'test':
-            torch.utils.data.DataLoader(
-                image_datasets['test'],
+                num_workers=0)
+test_set = datasets.ImageFolder('./data/test', data_transforms['test'])
+test_loader = torch.utils.data.DataLoader(
+                test_set,
                 batch_size=32,
                 shuffle=True,
-                num_workers=0),
-        }
+                num_workers=0)
 
 
 
+classes = len(train_set)
+#print(classes)
 
 def get_model():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -61,90 +55,96 @@ def get_model():
 
     for param in model.parameters():
         param.requires_grad = False
-    print(device)
+    #print(device)
     model.fc = nn.Sequential(
         nn.Linear(2048,1024),
         nn.ReLU(inplace = True),
         nn.Linear(1024,101))
     model = model.to(device)
 
+
+
+    return model
+
+
+
+
+
+
+
+if __name__ == '__main__':
+    torch.manual_seed(10)
+    num_epochs = 30
+    model = get_model()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.fc.parameters())
 
-    return model,criterion,optimizer
-
-
-
-
-def train_model(model,criterion,optimizer,num_epochs,lr=1e-3):
-
-    #train_loader = load_data().get('train')
-    #test_loader = load_data().get('test')
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    best_model_wts = copy.deepcopy(model.state_dict())
+    ##Training-----------------------------------------------
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch+1,num_epochs))
         print('--'*10)
 
-        for phase in ['train','test']:
-            if phase == 'train':
-                model.train()
-            else:
-                model.eval()
 
 
-            running_loss = 0.0
-            running_corrects = 0
 
-            for inputs,labels in dataloaders[phase]:
+        running_loss = 0.0
+        running_corrects = 0
+        running_acc = 0.
 
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+        for inputs,labels in train_loader:
+            model.train(True)
+            inputs,labels = inputs.cuda(),labels.cuda()
+            outputs,_ = model(inputs)
 
-                outputs,_ = model(inputs)
-                #print(outputs)
-
-
-                #print(labels)
-                loss = criterion(outputs,labels)
-
-                if phase == 'train':
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
-
-                _,preds = torch.max(outputs,1)
-                running_loss += loss.item()*inputs.size(0)
-                running_corrects += torch.sum(preds == labels.data)
-
-            epoch_loss = running_loss /len(image_datasets[phase])
-            epoch_acc = running_corrects.double()/len(image_datasets[phase])
+            loss = criterion(outputs, labels)
 
 
-            print('{} loss:{:.4f},acc:{:.4f}'.format(phase,
-                                                     epoch_loss,
-                                                     epoch_acc))
+
+            _, preds = torch.max(outputs, 1)
+            #print(inputs.size(0))
+            #print(loss.item())
+            running_loss += loss.item()
+            running_corrects = (preds == labels.data).sum()
+            running_acc += running_corrects.item()
+
+            #print("loss:")
+            #print(loss.item())
+            #print("running_loss:")
+            #print(running_loss)
+            #print("running_corrects:")
+            #print(running_corrects)
+            #print("running_acc:")
+            #print(running_acc)
 
 
+            optimizer.zero_grad()
+            loss.backward()
             optimizer.step()
 
+        print('Train Loss:{:.6f},Acc:{:.6f}'.format(running_loss/classes,
+              running_acc/classes))
 
+        state = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
+        filepath = './state/' + 'Epoch{:d}'.format(epoch) + 'model.pth'
+        print(filepath)
+        torch.save(state, filepath)
+        print('Model of Epoch {:d} has been saved'.format(epoch))
 
-    return model
-'''''
-def plot():
-    data = np.loadtxt('result.csv',delimiter=',')
-    plt.figure()
-    plt.plot(range(1,len(data[:,0] + 1),
-                   data[:,0],color = 'blue',label = 'train'))
-    plt.legend()
-    plt.xlabel('Epoch',fontsize=14)
-    plt.ylabel('Accuracy',fontsize=14)
-    plt.title('Training Accuracy',fontsize=20)
-    plt.show()
-'''''
+        #torch.save(state,'./data')
 
-if __name__ == '__main__':
-    torch.manual_seed(10)
-    model,criterion,optimizer = get_model()
-    train_model(model,criterion,optimizer,30,1e-3)
+    ##Evaluation----------------------------------------
+        model.eval()
+        test_loss = 0.
+        test_acc = 0.
+        with torch.no_grad():
+            for inputs, labels in test_loader:
+                inputs, labels = Variable(inputs, volatile=True), Variable(labels, volatile=True)
+                outputs,_ = model(inputs)
+                loss = criterion(outputs,labels)
+                test_loss += loss.item()
+                _, preds = torch.max(outputs, 1)
+                num_acc = (preds==labels).sum()
+                test_acc += num_acc.item()
+
+        print('Test Loss:{:.6f},Acc:{:.6f}'.format((test_loss/classes),(test_acc/classes)))
