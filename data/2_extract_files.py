@@ -49,10 +49,9 @@ def extract_files():
                     # Now extract it.
                     src = train_or_test + '/' + classname + '/' + \
                         filename
-                    jpg_path = train_or_test + '/' + classname + '/' + filename_no_ext + '/'
+                    jpg_path = train_or_test + '/' + classname + '/'
                     jpg_dir = mkdir(jpg_path)
-                    dest = jpg_dir + \
-                        filename_no_ext + '-%04d.jpg'
+                    dest = jpg_dir + filename_no_ext + '_' +  '-%000001d.jpg'
                     call(["ffmpeg", "-i", src, "-r" , "1" ,dest],shell=True)
 
                 # Now get how many frames it is.
@@ -73,7 +72,7 @@ def get_nb_frames_for_video(video_parts):
     the number of frames that were extracted."""
     train_or_test, classname, filename_no_ext, _ = video_parts
     generated_files = glob.glob(train_or_test + '/' + classname + '/' +
-                                filename_no_ext + '/' + '*.jpg')
+                                  '*.jpg')
     return len(generated_files)
 
 def get_video_parts(video_path):
@@ -94,7 +93,7 @@ def check_already_extracted(video_parts):
     """Check to see if we created the -0001 frame of this file."""
     train_or_test, classname, filename_no_ext, _ = video_parts
     return bool(os.path.exists(train_or_test + '/' + classname +
-                               '/' + filename_no_ext + '-0001.jpg'))
+                               '/' +  '-0001.jpg'))
 
 def mkdir(path):
     folder = os.path.exists(path)
