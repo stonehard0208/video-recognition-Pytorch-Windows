@@ -1,4 +1,3 @@
-from UCFdata import load_train_data,load_test_data
 import torch
 from torchvision import datasets,models,transforms
 import torch.nn as nn
@@ -137,9 +136,9 @@ if __name__ == '__main__':
         model.eval()
         test_loss = 0.
         test_acc = 0.
-        with torch.no_grad():
-            for inputs, labels in test_loader:
-                inputs, labels = Variable(inputs, volatile=True), Variable(labels, volatile=True)
+        
+        for inputs, labels in test_loader:
+                inputs, labels = inputs.cuda(), labels.cuda()
                 outputs,_ = model(inputs)
                 loss = criterion(outputs,labels)
                 test_loss += loss.item()
