@@ -113,19 +113,19 @@ for file,videos in group.items():
 
 以上操作后可以获得两个文件夹，train和test，目录结构如下：
 
-![10](readmepic/10.jpg)
-![11](readmepic/11.jpg)
+![10](readmepic/10.JPG)
+![11](readmepic/11.JPG)
 
 使用函数将空余文件夹删除
 
-![12](readmepic/12.jpg)
+![12](readmepic/12.JPG)
 
 就此，我们成功将训练集与测试集分开，接下来要对视频进行解帧，从而获得图片。
 
 ### Use ffmpeg deframe videos into pictures 
 ### 视频解帧为图片
 
-![13](readmepic/13.jpg)
+![13](readmepic/13.JPG)
 
 见图片代码注释可知，get_video_name函数可以返回四个值，分别是
 ```bash
@@ -135,11 +135,11 @@ filename_no_dot:v_ApplyEyeMakeup_g08_c01
 filename:v_ApplyEyeMakeup_g08_c01.avi
 ```
 
-![14](readmepic/14.jpg)
+![14](readmepic/14.JPG)
 
 接下来的conver函数将调用以上两个函数用于确认是否存在图片，以及创建文件夹。
 
-![15](readmepic/15.jpg)
+![15](readmepic/15.JPG)
 
 ```python
 ''' file:train/test
